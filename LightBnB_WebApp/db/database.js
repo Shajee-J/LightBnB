@@ -52,10 +52,10 @@ const getUserWithId = (id) => {
  * @return {Promise<{}>} A promise to the user.
  */
 const addUser = (user) => {
-  const { name, email, password } = user; 
+  const { name, email, password } = user;
   return pool
     .query('INSERT INTO users (name, email, password) VALUES ($1, $2, $3) RETURNING *;', [name, email, password])
-    .then((result) => {   
+    .then((result) => {
       return result.rows[0];
     })
     .catch((err) => {
@@ -73,7 +73,7 @@ const addUser = (user) => {
  */
 const getAllReservations = function (guest_id, limit = 10) {
   return pool
-  .query(`SELECT reservations.*, properties.*, avg(rating) as average_rating
+    .query(`SELECT reservations.*, properties.*, avg(rating) as average_rating
   FROM reservations
   JOIN properties ON reservations.property_id = properties.id
   JOIN property_reviews ON properties.id = property_reviews.property_id
@@ -81,7 +81,7 @@ const getAllReservations = function (guest_id, limit = 10) {
   GROUP BY properties.id, reservations.id
   ORDER BY reservations.start_date
   LIMIT $2;`, [guest_id, limit])
-    .then((result) => {   
+    .then((result) => {
       return result.rows
     })
     .catch((err) => {
@@ -111,8 +111,8 @@ const getAllProperties = function (options, limit = 10) {
   }
 
   if (options.owner_id) {
-    queryParams.push(`%${options.owner_id}%`);
-    queryString += `AND owner_id LIKE $${queryParams.length} `;
+    queryParams.push(options.owner_id);
+    queryString += `AND owner_id = $${queryParams.length} `;
   }
 
   if (options.minimum_price_per_night) {
@@ -146,11 +146,104 @@ const getAllProperties = function (options, limit = 10) {
  * @param {{}} property An object containing all of the property details.
  * @return {Promise<{}>} A promise to the property.
  */
-const addProperty = function (property) {
-  const propertyId = Object.keys(properties).length + 1;
-  property.id = propertyId;
-  properties[propertyId] = property;
-  return Promise.resolve(property);
+
+// deconstructed method:
+
+const addProperty = (property) => {
+  const queryParams = [];
+  let queryString = `
+  INSERT INTO properties (
+    title, 
+    description, 
+    owner_id, 
+    cover_photo_url, 
+    thumbnail_photo_url, 
+    cost_per_night, 
+    parking_spaces, 
+    number_of_bathrooms, 
+    number_of_bedrooms, 
+    active, 
+    province, 
+    city, 
+    country, 
+    street, 
+    post_code)
+
+    VALUES (
+  `
+  queryParams.push(property.title);
+  queryString += `$${queryParams.length},`;
+
+
+
+  queryParams.push(property.description);
+  queryString += `$${queryParams.length}, `;
+
+
+
+  queryParams.push(property.owner_id);
+  queryString += `$${queryParams.length}, `;
+
+
+
+  queryParams.push(property.cover_photo_url);
+  queryString += `$${queryParams.length}, `;
+
+
+
+  queryParams.push(property.thumbnail_photo_url);
+  queryString += `$${queryParams.length}, `;
+
+
+  queryParams.push(parseFloat(property.cost_per_night));
+  queryString += `$${queryParams.length}, `;
+
+
+  queryParams.push(property.parking_spaces);
+  queryString += `$${queryParams.length}, `;
+
+
+
+  queryParams.push(property.number_of_bathrooms);
+  queryString += `$${queryParams.length}, `;
+
+
+
+  queryParams.push(property.number_of_bedrooms);
+  queryString += `$${queryParams.length}, `;
+
+
+  queryParams.push(true);
+  queryString += `$${queryParams.length}, `;
+
+
+  queryParams.push(property.province);
+  queryString += `$${queryParams.length}, `;
+
+
+
+  queryParams.push(property.city);
+  queryString += `$${queryParams.length}, `;
+
+
+
+  queryParams.push(property.country);
+  queryString += `$${queryParams.length}, `;
+
+
+
+  queryParams.push(property.street);
+  queryString += `$${queryParams.length}, `;
+
+
+
+  queryParams.push(property.post_code);
+  queryString += `$${queryParams.length})`
+
+
+  queryString += `RETURNING *;`;
+
+  return pool.query(queryString, queryParams).then((res) => res.rows);
 };
 
 module.exports = {
@@ -161,3 +254,56 @@ module.exports = {
   getAllProperties,
   addProperty,
 };
+
+
+
+
+
+// Alternate method, in which the query string and the passed values are seperated:
+
+// const addProperty = function (property) {
+//   const queryParams = [];
+//   let queryString = `
+//     INSERT INTO properties (
+//       owner_id,
+//       title,
+//       description,
+//       thumbnail_photo_url,
+//       cover_photo_url,
+//       cost_per_night,
+//       parking_spaces,
+//       number_of_bathrooms,
+//       number_of_bedrooms,
+//       active,
+//       province,
+//       city,
+//       country,
+//       street,
+//       post_code
+//     )
+//     VALUES (
+//       $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15
+//     )
+//     RETURNING *;
+//   `;
+
+//   queryParams.push(
+//     property.owner_id,
+//     property.title,
+//     property.description,
+//     property.thumbnail_photo_url,
+//     property.cover_photo_url,
+//     parseFloat(property.cost_per_night),
+//     property.parking_spaces,
+//     property.number_of_bathrooms,
+//     property.number_of_bedrooms,
+//     true, // Make sure 'active' property is included
+//     property.province,
+//     property.city,
+//     property.country,
+//     property.street,
+//     property.post_code
+//   );
+
+//   return pool.query(queryString, queryParams).then((res) => res.rows[0]);
+// };
