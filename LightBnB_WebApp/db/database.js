@@ -105,7 +105,6 @@ const getAllProperties = function (options, limit = 10) {
     JOIN property_reviews ON properties.id = property_id
   `;
 
-  // Handle filtering based on provided options
   if (options.city) {
     queryParams.push(`%${options.city}%`);
     queryString += `WHERE city LIKE $${queryParams.length} `;
